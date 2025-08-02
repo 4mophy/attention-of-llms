@@ -52,10 +52,14 @@ def simple_training_example():
     src_tensor = torch.tensor([[src_vocab['我'], src_vocab['爱'], src_vocab['水'], src_vocab['课']]], dtype=torch.long)
 
     # 目标输入: <start> I love easy course
-    tgt_input_tensor = torch.tensor([[tgt_vocab['<start>'], tgt_vocab['I'], tgt_vocab['love'], tgt_vocab['easy'], tgt_vocab['course']]], dtype=torch.long)
+    tgt_input_tensor = torch.tensor(
+        [[tgt_vocab['<start>'], tgt_vocab['I'], tgt_vocab['love'], tgt_vocab['easy'], tgt_vocab['course']]],
+        dtype=torch.long)
 
     # 期望输出: I love easy course <end>
-    tgt_output_tensor = torch.tensor([[tgt_vocab['I'], tgt_vocab['love'], tgt_vocab['easy'], tgt_vocab['course'], tgt_vocab['<end>']]], dtype=torch.long)
+    tgt_output_tensor = torch.tensor(
+        [[tgt_vocab['I'], tgt_vocab['love'], tgt_vocab['easy'], tgt_vocab['course'], tgt_vocab['<end>']]],
+        dtype=torch.long)
 
     print("开始训练...")
     model.train()
@@ -92,11 +96,28 @@ def simple_training_example():
         # 逐步生成翻译
         for i in range(10):  # 最多生成10个词
             output = model(src_test, tgt_test)
+            print(f"Debug: output shape: {output.shape}")
+
+            # 如果输出是4维的，需要去掉多余的维度
+            if output.dim() == 4:
+                output = output.squeeze(1)  # 去掉第二个维度
+
+            print(f"Debug: output shape after squeeze: {output.shape}")
+
             # 获取最后一个词的预测
             pred = output[:, -1, :].argmax(dim=-1)  # 得到(batch_size,)的张量
+            print(f"Debug: pred shape: {pred.shape}")
+            print(f"Debug: pred value: {pred}")
+            print(f"Debug: tgt_test shape before cat: {tgt_test.shape}")
+
             # 将pred扩展为与tgt_test相同的维度
-            pred_extended = pred.unsqueeze(0).unsqueeze(1)  # 变为(1, 1, 1)
+            pred_extended = pred.unsqueeze(1)  # 变为(batch_size, 1)
+
+            print(f"Debug: pred_extended shape: {pred_extended.shape}")
+            print(f"Debug: pred_extended: {pred_extended}")
+
             tgt_test = torch.cat([tgt_test, pred_extended], dim=1)
+            print(f"Debug: tgt_test shape after cat: {tgt_test.shape}")
 
             # 如果预测到结束符，停止生成
             if pred.item() == tgt_vocab['<end>']:
